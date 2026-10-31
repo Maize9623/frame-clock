@@ -8,7 +8,7 @@
 
 ```bash
 npm install
-npm run build      # → dist/index.html（单文件，约 52 KB）
+npm run build      # → docs/index.html（单文件，约 52 KB）
 npm run dev        # 本地调试，默认 http://localhost:5173
 ```
 
@@ -57,7 +57,7 @@ src/ui/icons.js           天气图标
 
 ## 放上相框
 
-1. 相框能直接跑网页：把 `dist/index.html` 拷进去，地址加 `?mode=frame`。
+1. 相框能直接跑网页：把 `docs/index.html` 拷进去，地址加 `?mode=frame`。
 2. 相框只能访问局域网：在电脑上 `python3 -m http.server 8080 --directory dist`，相框打开 `http://<电脑局域网 IP>:8080/?mode=frame`。
 3. 定位在 `file://` 下会被浏览器拒绝，给相框固定城市更省事：`?mode=frame&city=杭州`。
 
