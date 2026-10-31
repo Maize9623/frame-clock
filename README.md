@@ -8,7 +8,7 @@
 
 ```bash
 npm install
-npm run build      # → docs/index.html（单文件，约 52 KB）
+npm run build      # → dist/index.html（单文件，约 52 KB）
 npm run dev        # 本地调试，默认 http://localhost:5173
 ```
 
@@ -57,7 +57,7 @@ src/ui/icons.js           天气图标
 
 ## 放上相框
 
-1. 相框能直接跑网页：把 `docs/index.html` 拷进去，地址加 `?mode=frame`。
+1. 相框能直接跑网页：把 `dist/index.html` 拷进去，地址加 `?mode=frame`。
 2. 相框只能访问局域网：在电脑上 `python3 -m http.server 8080 --directory dist`，相框打开 `http://<电脑局域网 IP>:8080/?mode=frame`。
 3. 定位在 `file://` 下会被浏览器拒绝，给相框固定城市更省事：`?mode=frame&city=杭州`。
 
@@ -66,3 +66,42 @@ src/ui/icons.js           天气图标
 ## 浏览器支持
 
 需要支持 `backdrop-filter`（Chrome 76+/Safari 9+/Edge 79+）和 CSS 容器单位。太老的相框固件若玻璃效果失效，会退化为半透明卡片，布局不受影响。
+
+## 自检记录
+
+日期：2026-10-31。按 `.cursor-task.md` 验证 + 定点修复，未改架构、未加依赖、未 commit。
+
+### 正确性
+
+| 项 | 怎么验 | 结果 |
+|----|--------|------|
+| 农历 | `/tmp` node 脚本 `import lunarOf`：2026-02-17→正月初一、06-19→五月初五、09-25→八月十五；2027-02-06→正月初一 | 通过，未改 lunarInfo 表 |
+| 节气 | 同脚本：`termOn(2026,12,22)==='冬至'`；清明 2026-04-05 | 通过 |
+| 节假日 | 对照 `holidays.json` 索引：2026-10-01 休、10-10 班；`hasPlanFor(2027)===false` | 通过 |
+| 倒计时 | `computeCountdowns` 钉在 2026-10-31：元旦 62 / 春节→2027-02-06 共 98 天等七项 | 通过 |
+| 跨天翻转 | `npm run build` 后 `./bin/vtime-check.sh '2026-10-31T23:59:53+08:00'` → `.shots/auto/rollover.png` | 通过：11 月 1 日，倒计时各 -1 |
+
+### 响应式
+
+`./bin/shots.sh '?city=Hangzhou'` → `.shots/auto/{1920x1200,1280x800,1280x720,1024x768,800x1280,768x1024}.png`。
+
+- 横屏六图：无横向滚动，文字未见溢出裁切。
+- **竖屏问题（已修）**：768×1024 倒计时曾被 `.cd-list { min-height:0; overflow:hidden }` + `.glass { overflow:hidden }` + `html/body { height:100% }` 压进视口，后三项不可见且无法滚到。
+- **修复**（`src/styles/main.css` 竖屏 media）：`html/body` 改为 `height:auto; min-height:100%`；`.side { min-height:min-content }`；`.countdown` 按内容长高；`.cd-list { overflow:visible; min-height:min-content }`。Puppeteer 复核：`scrollHeight 1190 > clientHeight 1024`，滚到底可见端午/中秋/国庆。
+
+### 边界降级
+
+| 场景 | 怎么验 | 结果 |
+|------|--------|------|
+| 城市为空 | `?location=city`（无 city） | 天气「未设置城市」，截图 `weather-empty-city.png` |
+| 断网/天气失败 | 拦截 `open-meteo.com` | 时钟/日历正常；天气「网络不可用…」（原 `Failed to fetch` 已映射中文） |
+| 缺年份 | `?month=2027-02` | 脚注「2027年节假日安排待更新」，`year-2027-missing.png` |
+| 坏 localStorage | stub `getItem` 返回非法 JSON、`setItem` 抛错 | 时钟与 7 条倒计时仍渲染，`bad-localstorage.png` |
+
+### 代码清理
+
+删除未使用：`dayDiff`、`LUNAR_MIN_YEAR`、`lunarFull`、`planYearsList`/`basisOf`/`holidayDataYears`、holiday `tint`、`WEEK_HEAD`/`pad`、weather `days`、CSS `.w-temp`、日历重复的 `grid-template-rows`。
+
+### 构建
+
+`npm run build` 通过；`dist/index.html` 单文件约 **52.7 KB**（修前约 52.8 KB，未见膨胀）。
